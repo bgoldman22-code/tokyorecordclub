@@ -73,7 +73,7 @@ export function pca(data: number[][], numComponents: number = 8): {
   explainedVariance: number[];
 } {
   // Standardize the data
-  const { data: standardizedData, means, stds } = standardize(data);
+  const { data: standardizedData } = standardize(data);
 
   // Create matrix
   const matrix = new Matrix(standardizedData);

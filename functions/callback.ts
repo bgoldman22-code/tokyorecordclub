@@ -9,7 +9,9 @@ import { setUserKV } from './storage';
 import type { UserData } from '../src/types';
 
 export const handler: Handler = async (event: HandlerEvent) => {
-  const { code, error, state } = event.queryStringParameters || {};
+  const code = event.queryStringParameters?.code;
+  const error = event.queryStringParameters?.error;
+  // const state = event.queryStringParameters?.state; // Can use for CSRF later
 
   // Handle authorization errors
   if (error) {

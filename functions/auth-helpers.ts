@@ -17,7 +17,7 @@ interface SessionPayload {
  */
 export async function getSession(
   event: HandlerEvent
-): Promise<{ user: UserData; spotifyId: string } | null> {
+): Promise<{ user: UserData; spotifyId: string; accessToken?: string } | null> {
   try {
     const cookies = parse(event.headers.cookie || '');
     const sessionToken = cookies.session;
@@ -41,6 +41,7 @@ export async function getSession(
     return {
       user,
       spotifyId: decoded.spotifyId,
+      accessToken: user.refreshToken, // Can be used to get fresh access token
     };
   } catch (error) {
     console.error('Session verification error:', error);

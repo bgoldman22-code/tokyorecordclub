@@ -27,6 +27,7 @@ export interface SpotifyTrack {
   name: string;
   uri: string;
   artists: Array<{ id: string; name: string }>;
+  artistId?: string; // Primary artist ID for convenience
   album: {
     id: string;
     name: string;
@@ -36,6 +37,7 @@ export interface SpotifyTrack {
   duration_ms: number;
   popularity: number;
   preview_url: string | null;
+  releaseDate?: string; // Alias for album.release_date
 }
 
 export interface SpotifyAudioFeatures {
@@ -138,9 +140,11 @@ export interface ConversationTranscript {
 }
 
 export interface WorldDefinition {
+  id?: string; // Job ID or unique identifier
   userId: string;
   createdAt: number;
   worldName: string;
+  name?: string; // Alias for worldName
   description: string;
   
   // Taste vectors
@@ -156,11 +160,20 @@ export interface WorldDefinition {
     instrumentalness: [number, number];
     danceability: [number, number];
   };
+  featureRanges?: {
+    valence: [number, number];
+    energy: [number, number];
+    acousticness: [number, number];
+    tempo: [number, number];
+    instrumentalness: [number, number];
+    danceability: [number, number];
+  }; // Alias
   
   // Metadata
   topGenres: string[];
   topArtists: string[];
   seedTracks: string[];
+  seedTrackIds?: string[]; // Alias for seedTracks
   
   // User inputs
   emotionalGeometry: EmotionalGeometry;
@@ -196,8 +209,10 @@ export interface IntersectionDefinition {
 export interface EnrichedTrack extends SpotifyTrack {
   audioFeatures: SpotifyAudioFeatures;
   artistGenres: string[];
+  genres?: string[]; // Alias for artistGenres
   primaryGenre: string;
   releaseYear: number;
+  artist?: string; // Primary artist name for convenience
   semanticEmbedding?: number[];
   scores?: {
     semantic: number;

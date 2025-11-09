@@ -154,6 +154,10 @@ No text, no faces, no literal imagery.`;
     n: 1,
   });
 
+  if (!response.data || !response.data[0]) {
+    throw new Error('Failed to generate image');
+  }
+
   return response.data[0].url!;
 }
 

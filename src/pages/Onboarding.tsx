@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import { Checkbox } from '../components/ui/checkbox';
 import { Label } from '../components/ui/label';
 import { ONBOARDING_QUESTIONS } from '../../functions/onboarding-questions';
 import type { OnboardingAnswers } from '../types';

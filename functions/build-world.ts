@@ -8,7 +8,7 @@
 import { Handler } from '@netlify/functions';
 import { getUserFromRequest } from './auth-helpers';
 import { getTracks, getAudioFeatures, getArtists } from './spotify';
-import { getUserKV, setUserKV, putWorldBlob, cacheTrackData, getCachedTrackData } from './storage';
+import { setUserKV, putWorldBlob, cacheTrackData, getCachedTrackData } from './storage';
 import { generateEmbeddings, extractWorldDefinition } from './openai-client';
 import { 
   pca, 
