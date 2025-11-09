@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# production build
+dist/
+.netlify/
+
+# local env files
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Netlify (keep state.json for site ID)
+.netlify/*
+!.netlify/state.json
