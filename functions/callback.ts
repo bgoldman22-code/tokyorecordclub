@@ -88,7 +88,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     return {
       statusCode: 302,
       headers: {
-        Location: '/seeds',
+        Location: '/',  // Redirect to home for now until /seeds page is created
         'Set-Cookie': cookie,
         'Cache-Control': 'no-cache',
       },
