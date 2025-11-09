@@ -28,7 +28,7 @@ export default function SeedSelection() {
 
   const fetchPlaylists = async () => {
     try {
-      const res = await fetch('/api/fetch-seeds/playlists', {
+      const res = await fetch('/.netlify/functions/fetch-seeds?type=playlists', {
         credentials: 'include'
       });
       const data = await res.json();
@@ -42,7 +42,7 @@ export default function SeedSelection() {
     if (!searchQuery.trim()) return;
 
     try {
-      const res = await fetch(`/api/fetch-seeds/search?q=${encodeURIComponent(searchQuery)}`, {
+      const res = await fetch(`/.netlify/functions/fetch-seeds?type=search&q=${encodeURIComponent(searchQuery)}`, {
         credentials: 'include'
       });
       const data = await res.json();
@@ -76,18 +76,18 @@ export default function SeedSelection() {
 
       if (seedType === 'history') {
         // Fetch from history
-        const res = await fetch(`/api/fetch-seeds/seeds?type=${historyRange}`, {
+        const res = await fetch(`/.netlify/functions/fetch-seeds?type=history&range=${historyRange}`, {
           credentials: 'include'
         });
         const data = await res.json();
         seedIds = data.trackIds;
       } else if (seedType === 'playlists') {
         // Fetch from playlists
-        const res = await fetch('/api/fetch-seeds/playlists', {
+        const res = await fetch('/.netlify/functions/fetch-seeds', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playlistIds: selectedPlaylists })
+          body: JSON.stringify({ type: 'playlists', playlistIds: selectedPlaylists })
         });
         const data = await res.json();
         seedIds = data.trackIds;
