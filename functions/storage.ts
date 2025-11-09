@@ -10,17 +10,15 @@ const KV_STORE_NAME = 'tokyo-record-club';
  * Helper to get a configured store
  */
 function getConfiguredStore(name: string) {
-  // Netlify automatically provides these in production
-  // For local development, you'd need to set SITE_ID and NETLIFY_TOKEN
-  if (process.env.SITE_ID && process.env.NETLIFY_TOKEN) {
-    return getStore({
-      name,
-      siteID: process.env.SITE_ID,
-      token: process.env.NETLIFY_TOKEN,
-    });
+  // In Netlify production, these environment variables are automatically available
+  // SITE_ID is a reserved Netlify variable
+  // For Blobs to work, the site needs to have Blobs enabled (automatic on most plans)
+  try {
+    return getStore(name);
+  } catch (error) {
+    console.error(`Failed to get store "${name}":`, error);
+    throw new Error(`Netlify Blobs not available. Ensure your site has Blobs enabled.`);
   }
-  // In production Netlify environment, this should work without explicit config
-  return getStore(name);
 }
 
 // ============================================================================
