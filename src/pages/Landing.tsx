@@ -14,7 +14,7 @@ export default function Landing() {
 
   const checkAuth = async () => {
     try {
-      const res = await fetch('/api/me', {
+      const res = await fetch('/.netlify/functions/me', {
         credentials: 'include'
       });
 
@@ -31,7 +31,7 @@ export default function Landing() {
 
   const handleSignIn = () => {
     // Redirect to Spotify OAuth
-    window.location.href = '/api/auth';
+    window.location.href = '/.netlify/functions/auth';
   };
 
   if (isLoading) {
