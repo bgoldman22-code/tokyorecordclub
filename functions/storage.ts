@@ -27,12 +27,12 @@ export async function getUserKV(spotifyId: string): Promise<UserData | null> {
 /**
  * Set user data in KV
  */
-export async function setUserKV(spotifyId: string, data: UserData): Promise<void> {
+export async function setUserKV(key: string, data: any): Promise<void> {
   try {
     const store = getStore(KV_STORE_NAME);
-    await store.set(`user:${spotifyId}`, JSON.stringify(data));
+    await store.set(key, JSON.stringify(data));
   } catch (error) {
-    console.error('Error setting user in KV:', error);
+    console.error('Error setting data in KV:', error);
     throw error;
   }
 }
