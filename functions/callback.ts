@@ -8,7 +8,7 @@ import { exchangeCodeForTokens } from './spotify';
 import { setUserKV } from './storage';
 import type { UserData } from '../src/types';
 
-export const handler: Handler = async (event: HandlerEvent, context) => {
+export const handler: Handler = async (event: HandlerEvent) => {
   const code = event.queryStringParameters?.code;
   const error = event.queryStringParameters?.error;
   // const state = event.queryStringParameters?.state; // Can use for CSRF later
@@ -65,7 +65,7 @@ export const handler: Handler = async (event: HandlerEvent, context) => {
     };
 
     // Store user in KV
-    await setUserKV(spotifyUser.id, userData, context);
+    await setUserKV(spotifyUser.id, userData);
 
     // Create session JWT
     const sessionToken = jwt.sign(

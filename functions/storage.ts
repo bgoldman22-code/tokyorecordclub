@@ -9,15 +9,29 @@ const KV_STORE_NAME = 'tokyo-record-club';
 /**
  * Helper to get a configured store
  * @param name - Store name
- * @param context - Netlify function context (optional, but required for production)
  */
-function getConfiguredStore(name: string, context?: any) {
+function getConfiguredStore(name: string) {
   try {
-    // Pass context if available (required in production)
-    return getStore({ name, ...(context && { context }) });
+    // Use explicit environment variables for Blobs authentication
+    const siteID = process.env.SITE_ID;
+    const token = process.env.NETLIFY_TOKEN;
+    
+    if (!siteID) {
+      throw new Error('SITE_ID environment variable is not set');
+    }
+    
+    if (!token) {
+      throw new Error('NETLIFY_TOKEN environment variable is not set');
+    }
+    
+    return getStore({
+      name,
+      siteID,
+      token,
+    });
   } catch (error) {
     console.error(`Failed to get store "${name}":`, error);
-    throw new Error(`Netlify Blobs not available. Ensure your site has Blobs enabled.`);
+    throw new Error(`Netlify Blobs not available: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -28,9 +42,9 @@ function getConfiguredStore(name: string, context?: any) {
 /**
  * Get user data from KV
  */
-export async function getUserKV(spotifyId: string, context?: any): Promise<UserData | null> {
+export async function getUserKV(spotifyId: string): Promise<UserData | null> {
   try {
-    const store = getConfiguredStore(KV_STORE_NAME, context);
+    const store = getConfiguredStore(KV_STORE_NAME);
     const data = await store.get(`user:${spotifyId}`);
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -42,9 +56,9 @@ export async function getUserKV(spotifyId: string, context?: any): Promise<UserD
 /**
  * Set user data in KV
  */
-export async function setUserKV(key: string, data: any, context?: any): Promise<void> {
+export async function setUserKV(key: string, data: any): Promise<void> {
   try {
-    const store = getConfiguredStore(KV_STORE_NAME, context);
+    const store = getConfiguredStore(KV_STORE_NAME);
     await store.set(key, JSON.stringify(data));
   } catch (error) {
     console.error('Error setting data in KV:', error);
