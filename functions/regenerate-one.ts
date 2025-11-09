@@ -48,8 +48,8 @@ export const handler: Handler = async (event) => {
     const now = Date.now();
     const cooldownMs = 15 * 60 * 1000; // 15 minutes
 
-    if (lastRegen && (now - (lastRegen as number)) < cooldownMs) {
-      const remainingMs = cooldownMs - (now - (lastRegen as number));
+    if (lastRegen && (now - (lastRegen as unknown as number)) < cooldownMs) {
+      const remainingMs = cooldownMs - (now - (lastRegen as unknown as number));
       const remainingMin = Math.ceil(remainingMs / 1000 / 60);
       
       return {

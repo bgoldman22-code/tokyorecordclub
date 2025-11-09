@@ -147,5 +147,5 @@ export async function testHandler() {
     headers: {},
     body: null,
     isBase64Encoded: false
-  } as ScheduledEvent);
+  } as ScheduledEvent, {} as any);
 }
