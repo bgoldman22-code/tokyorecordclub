@@ -19,12 +19,18 @@ export async function getSession(
   event: HandlerEvent
 ): Promise<{ user: UserData; spotifyId: string; accessToken?: string } | null> {
   try {
-    const cookies = parse(event.headers.cookie || '');
+    const cookieHeader = event.headers.cookie || '';
+    console.log('Cookie header:', cookieHeader ? 'present' : 'missing');
+    
+    const cookies = parse(cookieHeader);
     const sessionToken = cookies.session;
 
     if (!sessionToken) {
+      console.log('No session token found in cookies');
       return null;
     }
+
+    console.log('Session token found, verifying...');
 
     // Verify JWT
     const decoded = jwt.verify(
@@ -32,11 +38,16 @@ export async function getSession(
       process.env.SESSION_SECRET!
     ) as SessionPayload;
 
+    console.log('JWT verified for user:', decoded.spotifyId);
+
     // Get user from KV
     const user = await getUserKV(decoded.spotifyId);
     if (!user) {
+      console.log('User not found in KV:', decoded.spotifyId);
       return null;
     }
+
+    console.log('User found in KV:', decoded.spotifyId);
 
     return {
       user,
