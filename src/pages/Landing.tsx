@@ -18,9 +18,13 @@ export default function Landing() {
         credentials: 'include'
       });
 
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         // User is authenticated, redirect to seeds
-        navigate('/seeds');
+        const data = await res.json();
+        if (data.spotifyId) {
+          navigate('/seeds');
+          return;
+        }
       }
     } catch (error) {
       console.error('Auth check failed:', error);

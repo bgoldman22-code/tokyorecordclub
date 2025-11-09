@@ -27,9 +27,9 @@
   path = "/.netlify/functions/schedule-weekly"
   schedule = "0 15 * * 1"
 
-# SPA fallback - must come after function routes
+# SPA fallback - exclude function paths
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = false  # Don't override functions
+  conditions = {path = ["!/.netlify/*"]}  # Don't redirect Netlify functions
