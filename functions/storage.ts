@@ -6,6 +6,23 @@ import type { UserData, WorldDefinition, GenerationManifest } from '../src/types
 
 const KV_STORE_NAME = 'tokyo-record-club';
 
+/**
+ * Helper to get a configured store
+ */
+function getConfiguredStore(name: string) {
+  // Netlify automatically provides these in production
+  // For local development, you'd need to set SITE_ID and NETLIFY_TOKEN
+  if (process.env.SITE_ID && process.env.NETLIFY_TOKEN) {
+    return getStore({
+      name,
+      siteID: process.env.SITE_ID,
+      token: process.env.NETLIFY_TOKEN,
+    });
+  }
+  // In production Netlify environment, this should work without explicit config
+  return getStore(name);
+}
+
 // ============================================================================
 // KV Helpers (Fast lookups, <1GB)
 // ============================================================================
@@ -15,7 +32,7 @@ const KV_STORE_NAME = 'tokyo-record-club';
  */
 export async function getUserKV(spotifyId: string): Promise<UserData | null> {
   try {
-    const store = getStore(KV_STORE_NAME);
+    const store = getConfiguredStore(KV_STORE_NAME);
     const data = await store.get(`user:${spotifyId}`);
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -29,7 +46,7 @@ export async function getUserKV(spotifyId: string): Promise<UserData | null> {
  */
 export async function setUserKV(key: string, data: any): Promise<void> {
   try {
-    const store = getStore(KV_STORE_NAME);
+    const store = getConfiguredStore(KV_STORE_NAME);
     await store.set(key, JSON.stringify(data));
   } catch (error) {
     console.error('Error setting data in KV:', error);
@@ -42,7 +59,7 @@ export async function setUserKV(key: string, data: any): Promise<void> {
  */
 export async function getAllActiveUsers(): Promise<UserData[]> {
   try {
-    const store = getStore(KV_STORE_NAME);
+    const store = getConfiguredStore(KV_STORE_NAME);
     const keys = await store.list({ prefix: 'user:' });
     
     const users: UserData[] = [];
@@ -71,7 +88,7 @@ export async function getLastRegenTime(
   intersectionName: string
 ): Promise<number | null> {
   try {
-    const store = getStore(KV_STORE_NAME);
+    const store = getConfiguredStore(KV_STORE_NAME);
     const data = await store.get(`user:${spotifyId}:lastRegen:${intersectionName}`);
     return data ? parseInt(data, 10) : null;
   } catch (error) {
@@ -89,7 +106,7 @@ export async function setLastRegenTime(
   timestamp: number
 ): Promise<void> {
   try {
-    const store = getStore(KV_STORE_NAME);
+    const store = getConfiguredStore(KV_STORE_NAME);
     await store.set(
       `user:${spotifyId}:lastRegen:${intersectionName}`,
       timestamp.toString()
@@ -112,7 +129,7 @@ export async function putWorldBlob(
   world: WorldDefinition
 ): Promise<void> {
   try {
-    const store = getStore('worlds');
+    const store = getConfiguredStore('worlds');
     await store.set(`users/${userId}/world.json`, JSON.stringify(world), {
       metadata: { userId, createdAt: world.createdAt.toString() },
     });
@@ -129,7 +146,7 @@ export async function getWorldBlob(
   userId: string
 ): Promise<WorldDefinition | null> {
   try {
-    const store = getStore('worlds');
+    const store = getConfiguredStore('worlds');
     const data = await store.get(`users/${userId}/world.json`);
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -146,7 +163,7 @@ export async function putManifestBlob(
   manifest: GenerationManifest
 ): Promise<void> {
   try {
-    const store = getStore('manifests');
+    const store = getConfiguredStore('manifests');
     await store.set(
       `users/${userId}/runs/${manifest.timestamp}.json`,
       JSON.stringify(manifest),
@@ -172,7 +189,7 @@ export async function cacheTrackData(
   data: any
 ): Promise<void> {
   try {
-    const store = getStore('cache');
+    const store = getConfiguredStore('cache');
     await store.set(`tracks/${trackId}.json`, JSON.stringify(data), {
       metadata: { cachedAt: Date.now().toString(), ttl: '86400' },
     });
@@ -187,7 +204,7 @@ export async function cacheTrackData(
  */
 export async function getCachedTrackData(trackId: string): Promise<any | null> {
   try {
-    const store = getStore('cache');
+    const store = getConfiguredStore('cache');
     const blob = await store.getWithMetadata(`tracks/${trackId}.json`);
     
     if (!blob || !blob.data) return null;
@@ -217,7 +234,7 @@ export async function cacheAudioEmbedding(
   embedding: number[]
 ): Promise<void> {
   try {
-    const store = getStore('embeddings');
+    const store = getConfiguredStore('embeddings');
     await store.set(`audio/${trackId}.json`, JSON.stringify(embedding), {
       metadata: { trackId, type: 'audio' },
     });
@@ -233,7 +250,7 @@ export async function getCachedAudioEmbedding(
   trackId: string
 ): Promise<number[] | null> {
   try {
-    const store = getStore('embeddings');
+    const store = getConfiguredStore('embeddings');
     const data = await store.get(`audio/${trackId}.json`);
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -250,7 +267,7 @@ export async function cacheTextEmbedding(
   embedding: number[]
 ): Promise<void> {
   try {
-    const store = getStore('embeddings');
+    const store = getConfiguredStore('embeddings');
     await store.set(`text/${trackId}.json`, JSON.stringify(embedding), {
       metadata: { trackId, type: 'text' },
     });
@@ -266,7 +283,7 @@ export async function getCachedTextEmbedding(
   trackId: string
 ): Promise<number[] | null> {
   try {
-    const store = getStore('embeddings');
+    const store = getConfiguredStore('embeddings');
     const data = await store.get(`text/${trackId}.json`);
     return data ? JSON.parse(data) : null;
   } catch (error) {
