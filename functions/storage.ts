@@ -8,13 +8,13 @@ const KV_STORE_NAME = 'tokyo-record-club';
 
 /**
  * Helper to get a configured store
+ * @param name - Store name
+ * @param context - Netlify function context (optional, but required for production)
  */
-function getConfiguredStore(name: string) {
-  // In Netlify production, these environment variables are automatically available
-  // SITE_ID is a reserved Netlify variable
-  // For Blobs to work, the site needs to have Blobs enabled (automatic on most plans)
+function getConfiguredStore(name: string, context?: any) {
   try {
-    return getStore(name);
+    // Pass context if available (required in production)
+    return getStore({ name, ...(context && { context }) });
   } catch (error) {
     console.error(`Failed to get store "${name}":`, error);
     throw new Error(`Netlify Blobs not available. Ensure your site has Blobs enabled.`);
@@ -28,9 +28,9 @@ function getConfiguredStore(name: string) {
 /**
  * Get user data from KV
  */
-export async function getUserKV(spotifyId: string): Promise<UserData | null> {
+export async function getUserKV(spotifyId: string, context?: any): Promise<UserData | null> {
   try {
-    const store = getConfiguredStore(KV_STORE_NAME);
+    const store = getConfiguredStore(KV_STORE_NAME, context);
     const data = await store.get(`user:${spotifyId}`);
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -42,9 +42,9 @@ export async function getUserKV(spotifyId: string): Promise<UserData | null> {
 /**
  * Set user data in KV
  */
-export async function setUserKV(key: string, data: any): Promise<void> {
+export async function setUserKV(key: string, data: any, context?: any): Promise<void> {
   try {
-    const store = getConfiguredStore(KV_STORE_NAME);
+    const store = getConfiguredStore(KV_STORE_NAME, context);
     await store.set(key, JSON.stringify(data));
   } catch (error) {
     console.error('Error setting data in KV:', error);
