@@ -153,9 +153,9 @@ export default function Results() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-12">
-            <h1 className="text-5xl font-bold mb-4">{world.name}</h1>
+            <h1 className="text-5xl font-bold mb-4">Your Musical World</h1>
             <p className="text-xl text-neutral-400 mb-6 max-w-3xl">
-              {world.description}
+              {world.description || 'Explore your personalized music intersections'}
             </p>
             <div className="flex gap-4">
               <Button

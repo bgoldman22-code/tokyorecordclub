@@ -5,7 +5,6 @@ import { Card } from '../components/ui/card';
 export default function WorldPreview() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const jobId = sessionStorage.getItem('worldJobId');
@@ -33,7 +32,6 @@ export default function WorldPreview() {
       if (res.ok) {
         const data = await res.json();
         setStatus(data);
-        setIsLoading(false);
 
         if (data.status === 'complete') {
           // Navigate to playlist generation
