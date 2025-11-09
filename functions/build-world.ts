@@ -71,7 +71,7 @@ export const handler: Handler = async (event) => {
     });
 
     // Build world asynchronously (don't await - return immediately)
-    buildWorldAsync(session.spotifyId, session.accessToken, seedTrackIds, onboardingAnswers, jobId)
+    buildWorldAsync(session.spotifyId, seedTrackIds, onboardingAnswers, jobId)
       .catch(error => {
         console.error('World building failed:', error);
         setUserKV(`job:${jobId}`, {
@@ -104,7 +104,6 @@ export const handler: Handler = async (event) => {
  */
 async function buildWorldAsync(
   userId: string,
-  accessToken: string,
   seedTrackIds: string[],
   answers: OnboardingAnswers,
   jobId: string
@@ -114,26 +113,31 @@ async function buildWorldAsync(
 
   // Step 1: Fetch seed tracks (with caching)
   await updateProgress(jobId, 10, 'Fetching seed tracks...');
-  const seedTracks = await fetchSeedTracks(accessToken, seedTrackIds);
+  const seedTracks = await fetchSeedTracks(userId, seedTrackIds);
 
   // Step 2: Get audio features (with caching)
   await updateProgress(jobId, 25, 'Analyzing audio features...');
-  const audioFeatures = await fetchAudioFeatures(accessToken, seedTrackIds);
+  const audioFeatures = await fetchAudioFeatures(userId, seedTrackIds);
 
   // Step 3: Get artist data for genres
   await updateProgress(jobId, 35, 'Fetching artist genres...');
-  const artistIds = [...new Set(seedTracks.map(t => t.artistId))];
-  const artists = await getArtists(accessToken, artistIds);
+  const artistIds = [...new Set(seedTracks.map(t => t.artistId).filter(Boolean))] as string[];
+  const artists = await getArtists(artistIds, userId);
   const artistGenres = new Map(artists.map(a => [a.id, a.genres]));
 
   // Step 4: Enrich tracks with metadata
   await updateProgress(jobId, 45, 'Enriching track data...');
-  const enrichedTracks: EnrichedTrack[] = seedTracks.map((track, i) => ({
-    ...track,
-    audioFeatures: audioFeatures[i],
-    genres: artistGenres.get(track.artistId) || [],
-    releaseYear: new Date(track.releaseDate).getFullYear()
-  }));
+  const enrichedTracks: EnrichedTrack[] = seedTracks.map((track, i) => {
+    const trackGenres = artistGenres.get(track.artistId || '') || [];
+    return {
+      ...track,
+      audioFeatures: audioFeatures[i],
+      genres: trackGenres,
+      artistGenres: trackGenres,
+      primaryGenre: trackGenres[0] || 'unknown',
+      releaseYear: track.releaseDate ? new Date(track.releaseDate).getFullYear() : 2000
+    };
+  });
 
   // Step 5: Compute taste centroid with PCA
   await updateProgress(jobId, 55, 'Computing taste vector...');
@@ -235,7 +239,7 @@ async function buildWorldAsync(
  * Fetch seed tracks with caching
  */
 async function fetchSeedTracks(
-  accessToken: string,
+  spotifyId: string,
   trackIds: string[]
 ): Promise<SpotifyTrack[]> {
   const tracks: SpotifyTrack[] = [];
@@ -253,7 +257,7 @@ async function fetchSeedTracks(
 
   // Fetch uncached tracks
   if (uncachedIds.length > 0) {
-    const fetched = await getTracks(accessToken, uncachedIds);
+    const fetched = await getTracks(uncachedIds, spotifyId);
     tracks.push(...fetched);
 
     // Cache them
@@ -269,11 +273,10 @@ async function fetchSeedTracks(
  * Fetch audio features with caching
  */
 async function fetchAudioFeatures(
-  accessToken: string,
+  spotifyId: string,
   trackIds: string[]
 ): Promise<SpotifyAudioFeatures[]> {
-  // Audio features are cached as part of track data
-  return await getAudioFeatures(accessToken, trackIds);
+  return await getAudioFeatures(trackIds, spotifyId);
 }
 
 /**
@@ -283,7 +286,8 @@ function extractTopGenres(tracks: EnrichedTrack[], limit: number): string[] {
   const genreCounts = new Map<string, number>();
 
   for (const track of tracks) {
-    for (const genre of track.genres) {
+    const genres = track.genres || [];
+    for (const genre of genres) {
       genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
     }
   }
@@ -297,7 +301,7 @@ function extractTopGenres(tracks: EnrichedTrack[], limit: number): string[] {
 /**
  * Compute average audio features
  */
-function computeAverageFeatures(features: SpotifyAudioFeatures[]): SpotifyAudioFeatures {
+function computeAverageFeatures(features: SpotifyAudioFeatures[]): Partial<SpotifyAudioFeatures> {
   const avg = {
     acousticness: 0,
     danceability: 0,
