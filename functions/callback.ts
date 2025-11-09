@@ -65,7 +65,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     };
 
     // Store user in KV
-    await setUserKV(spotifyUser.id, userData);
+    await setUserKV(`user:${spotifyUser.id}`, userData);
 
     // Create session JWT
     const sessionToken = jwt.sign(
