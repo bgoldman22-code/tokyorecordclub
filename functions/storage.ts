@@ -193,8 +193,8 @@ export async function getCachedTrackData(trackId: string): Promise<any | null> {
     if (!blob || !blob.data) return null;
     
     // Check TTL
-    const cachedAt = parseInt(blob.metadata?.cachedAt || '0', 10);
-    const ttl = parseInt(blob.metadata?.ttl || '86400', 10);
+    const cachedAt = parseInt((blob.metadata?.cachedAt as string) || '0', 10);
+    const ttl = parseInt((blob.metadata?.ttl as string) || '86400', 10);
     const now = Date.now();
     
     if (now - cachedAt > ttl * 1000) {

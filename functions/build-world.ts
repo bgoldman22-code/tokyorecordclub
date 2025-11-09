@@ -41,11 +41,11 @@ export const handler: Handler = async (event) => {
 
   try {
     // Verify auth
-    const user = await getUserFromRequest(event);
-    if (!user) {
+    const session = await getUserFromRequest(event);
+    if (!session || !session.accessToken) {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'Unauthorized' })
+        body: JSON.stringify({ error: 'Unauthorized - missing access token' })
       };
     }
 
@@ -61,7 +61,7 @@ export const handler: Handler = async (event) => {
     }
 
     // Start async world building
-    const jobId = `world-${user.spotifyId}-${Date.now()}`;
+    const jobId = `world-${session.spotifyId}-${Date.now()}`;
     
     // Store job status in KV
     await setUserKV(`job:${jobId}`, {
@@ -71,7 +71,7 @@ export const handler: Handler = async (event) => {
     });
 
     // Build world asynchronously (don't await - return immediately)
-    buildWorldAsync(user.spotifyId, user.accessToken, seedTrackIds, onboardingAnswers, jobId)
+    buildWorldAsync(session.spotifyId, session.accessToken, seedTrackIds, onboardingAnswers, jobId)
       .catch(error => {
         console.error('World building failed:', error);
         setUserKV(`job:${jobId}`, {

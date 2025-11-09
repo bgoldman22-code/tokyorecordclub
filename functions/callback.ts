@@ -19,7 +19,8 @@ export const handler: Handler = async (event: HandlerEvent) => {
       statusCode: 302,
       headers: {
         Location: `/?error=${encodeURIComponent(error)}`,
-      },
+        'Cache-Control': 'no-cache',
+      } as { [key: string]: string },
       body: '',
     };
   }
