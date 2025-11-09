@@ -7,11 +7,10 @@
 
 import { Handler } from '@netlify/functions';
 import { getUserFromRequest } from './auth-helpers';
-import { getWorldBlob, setUserKV, cacheTrackData, getCachedTrackData } from './storage';
+import { getWorldBlob, setUserKV } from './storage';
 import { 
   getRecommendations, 
   getAudioFeatures, 
-  getTracks,
   getArtists,
   createPlaylist,
   replacePlaylistTracks,
@@ -27,8 +26,7 @@ import {
 import type { 
   WorldDefinition, 
   SpotifyTrack, 
-  SpotifyAudioFeatures,
-  EnrichedTrack 
+  SpotifyAudioFeatures
 } from '../src/types';
 
 interface CandidateTrack extends SpotifyTrack {
@@ -51,16 +49,16 @@ export const handler: Handler = async (event) => {
 
   try {
     // Verify auth
-    const user = await getUserFromRequest(event);
-    if (!user) {
+    const session = await getUserFromRequest(event);
+    if (!session || !session.accessToken) {
       return {
         statusCode: 401,
-        body: JSON.stringify({ error: 'Unauthorized' })
+        body: JSON.stringify({ error: 'Unauthorized - missing access token' })
       };
     }
 
     // Load world definition
-    const world = await getWorldBlob(user.spotifyId);
+    const world = await getWorldBlob(session.spotifyId);
     if (!world) {
       return {
         statusCode: 404,
@@ -68,8 +66,7 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Start async generation
-    const jobId = `playlists-${user.spotifyId}-${Date.now()}`;
+    const jobId = `playlists-${session.spotifyId}-${Date.now()}`;
     
     await setUserKV(`job:${jobId}`, {
       status: 'generating',
@@ -78,7 +75,7 @@ export const handler: Handler = async (event) => {
     });
 
     // Generate playlists asynchronously
-    generatePlaylistsAsync(user.spotifyId, user.accessToken, world, jobId)
+    generatePlaylistsAsync(session.spotifyId, world, jobId)
       .catch(error => {
         console.error('Playlist generation failed:', error);
         setUserKV(`job:${jobId}`, {
@@ -111,7 +108,6 @@ export const handler: Handler = async (event) => {
  */
 async function generatePlaylistsAsync(
   userId: string,
-  accessToken: string,
   world: WorldDefinition,
   jobId: string
 ): Promise<void> {
@@ -120,7 +116,7 @@ async function generatePlaylistsAsync(
 
   // Step 1: Harvest candidates from Spotify
   await updateProgress(jobId, 10, 'Harvesting candidates...');
-  const candidates = await harvestCandidates(accessToken, world);
+  const candidates = await harvestCandidates(userId, world);
   console.log(`[${jobId}] Harvested ${candidates.length} candidates`);
 
   // Step 2: Filter blocklist (tracks user has already)
@@ -130,7 +126,7 @@ async function generatePlaylistsAsync(
 
   // Step 3: Batch fetch audio features
   await updateProgress(jobId, 30, 'Analyzing audio features...');
-  const withFeatures = await enrichWithAudioFeatures(accessToken, filtered);
+  const withFeatures = await enrichWithAudioFeatures(userId, filtered);
 
   // Step 4: Coarse filter with Spotify features
   await updateProgress(jobId, 40, 'Applying audio constraints...');
@@ -139,7 +135,7 @@ async function generatePlaylistsAsync(
 
   // Step 5: Enrich with genres
   await updateProgress(jobId, 50, 'Fetching artist genres...');
-  const enriched = await enrichWithGenres(accessToken, coarseFiltered);
+  const enriched = await enrichWithGenres(userId, coarseFiltered);
 
   // Step 6: Generate text embeddings for semantic scoring
   await updateProgress(jobId, 60, 'Computing semantic scores...');
@@ -159,7 +155,7 @@ async function generatePlaylistsAsync(
 
   // Step 10: Create Spotify playlists
   await updateProgress(jobId, 90, 'Creating Spotify playlists...');
-  await createSpotifyPlaylists(accessToken, userId, world, playlists);
+  await createSpotifyPlaylists(userId, world, playlists);
 
   // Step 11: Mark complete
   await updateProgress(jobId, 100, 'Complete!');
@@ -176,7 +172,7 @@ async function generatePlaylistsAsync(
  * Harvest candidates from Spotify Recommendations API
  */
 async function harvestCandidates(
-  accessToken: string,
+  spotifyId: string,
   world: WorldDefinition
 ): Promise<SpotifyTrack[]> {
   
@@ -184,59 +180,65 @@ async function harvestCandidates(
   const seenIds = new Set<string>();
 
   // Strategy: Make 5-10 calls with different seed combinations
-  const seedTrackIds = world.seedTrackIds.slice(0, 50); // Use top 50 seeds
+  const seedTrackIds = world.seedTrackIds || [];
+  if (seedTrackIds.length === 0) {
+    console.warn('No seed tracks in world definition');
+    return [];
+  }
+  
+  const limitedSeeds = seedTrackIds.slice(0, 50); // Use top 50 seeds
 
   // Call 1: Use first 5 seed tracks
-  const call1 = await getRecommendations(accessToken, {
-    seed_tracks: seedTrackIds.slice(0, 5),
+  const call1 = await getRecommendations({
+    seed_tracks: limitedSeeds.slice(0, 5),
     limit: 100
-  });
+  }, spotifyId);
   addUnique(candidates, call1, seenIds);
 
   // Call 2: Use next 5 seed tracks with target parameters
   const avgFeatures = computeAverageFeatures(world);
-  const call2 = await getRecommendations(accessToken, {
-    seed_tracks: seedTrackIds.slice(5, 10),
-    target_acousticness: avgFeatures.acousticness,
-    target_valence: avgFeatures.valence,
-    target_energy: avgFeatures.energy,
+  const call2 = await getRecommendations({
+    seed_tracks: limitedSeeds.slice(5, 10),
+    target_acousticness: avgFeatures.acousticness || 0.5,
+    target_valence: avgFeatures.valence || 0.5,
+    target_energy: avgFeatures.energy || 0.5,
     limit: 100
-  });
+  }, spotifyId);
   addUnique(candidates, call2, seenIds);
 
   // Call 3: Use middle seeds with tempo/instrumentalness
-  const call3 = await getRecommendations(accessToken, {
-    seed_tracks: seedTrackIds.slice(10, 15),
-    target_tempo: avgFeatures.tempo,
-    target_instrumentalness: avgFeatures.instrumentalness,
+  const call3 = await getRecommendations({
+    seed_tracks: limitedSeeds.slice(10, 15),
+    target_tempo: avgFeatures.tempo || 120,
+    target_instrumentalness: avgFeatures.instrumentalness || 0.1,
     limit: 100
-  });
+  }, spotifyId);
   addUnique(candidates, call3, seenIds);
 
   // Call 4: Biased toward low valence (darker)
-  const call4 = await getRecommendations(accessToken, {
-    seed_tracks: seedTrackIds.slice(15, 20),
-    target_valence: Math.max(0, avgFeatures.valence - 0.2),
-    target_energy: Math.max(0, avgFeatures.energy - 0.1),
+  const call4 = await getRecommendations({
+    seed_tracks: limitedSeeds.slice(15, 20),
+    target_valence: Math.max(0, (avgFeatures.valence || 0.5) - 0.2),
+    target_energy: Math.max(0, (avgFeatures.energy || 0.5) - 0.1),
     limit: 100
-  });
+  }, spotifyId);
   addUnique(candidates, call4, seenIds);
 
   // Call 5: Biased toward high acousticness (organic)
-  const call5 = await getRecommendations(accessToken, {
-    seed_tracks: seedTrackIds.slice(20, 25),
-    target_acousticness: Math.min(1, avgFeatures.acousticness + 0.2),
+  const call5 = await getRecommendations({
+    seed_tracks: limitedSeeds.slice(20, 25),
+    target_acousticness: Math.min(1, (avgFeatures.acousticness || 0.5) + 0.2),
     limit: 100
-  });
+  }, spotifyId);
   addUnique(candidates, call5, seenIds);
 
   // Optional: More calls for diversity
-  if (seedTrackIds.length > 30) {
-    const call6 = await getRecommendations(accessToken, {
-      seed_tracks: seedTrackIds.slice(25, 30),
-      target_danceability: avgFeatures.danceability,
+  if (limitedSeeds.length > 30) {
+    const call6 = await getRecommendations({
+      seed_tracks: limitedSeeds.slice(25, 30),
+      target_danceability: avgFeatures.danceability || 0.5,
       limit: 100
-    });
+    }, spotifyId);
     addUnique(candidates, call6, seenIds);
   }
 
@@ -276,12 +278,12 @@ async function filterBlocklist(
  * Enrich tracks with audio features
  */
 async function enrichWithAudioFeatures(
-  accessToken: string,
+  spotifyId: string,
   tracks: SpotifyTrack[]
 ): Promise<Array<SpotifyTrack & { audioFeatures: SpotifyAudioFeatures }>> {
   
   const trackIds = tracks.map(t => t.id);
-  const features = await getAudioFeatures(accessToken, trackIds);
+  const features = await getAudioFeatures(trackIds, spotifyId);
 
   return tracks.map((track, i) => ({
     ...track,
@@ -298,6 +300,10 @@ function applyCoarseFilters(
 ): Array<SpotifyTrack & { audioFeatures: SpotifyAudioFeatures }> {
   
   const ranges = world.featureRanges;
+  if (!ranges) {
+    console.warn('No feature ranges in world definition, skipping coarse filter');
+    return tracks;
+  }
 
   return tracks.filter(track => {
     const f = track.audioFeatures;
@@ -308,13 +314,13 @@ function applyCoarseFilters(
     const tempoPadding = 20;
 
     return (
-      f.valence >= ranges.valence.min - valencePadding &&
-      f.valence <= ranges.valence.max + valencePadding &&
-      f.energy >= ranges.energy.min - energyPadding &&
-      f.energy <= ranges.energy.max + energyPadding &&
-      f.tempo >= ranges.tempo.min - tempoPadding &&
-      f.tempo <= ranges.tempo.max + tempoPadding &&
-      f.acousticness >= ranges.acousticness.min - 0.2
+      f.valence >= ranges.valence[0] - valencePadding &&
+      f.valence <= ranges.valence[1] + valencePadding &&
+      f.energy >= ranges.energy[0] - energyPadding &&
+      f.energy <= ranges.energy[1] + energyPadding &&
+      f.tempo >= ranges.tempo[0] - tempoPadding &&
+      f.tempo <= ranges.tempo[1] + tempoPadding &&
+      f.acousticness >= ranges.acousticness[0] - 0.2
     );
   });
 }
@@ -323,7 +329,7 @@ function applyCoarseFilters(
  * Enrich with artist genres
  */
 async function enrichWithGenres(
-  accessToken: string,
+  spotifyId: string,
   tracks: Array<SpotifyTrack & { audioFeatures: SpotifyAudioFeatures }>
 ): Promise<CandidateTrack[]> {
   
@@ -333,7 +339,7 @@ async function enrichWithGenres(
   )];
 
   // Fetch artist data in batches
-  const artists = await getArtists(accessToken, artistIds);
+  const artists = await getArtists(artistIds, spotifyId);
   const artistGenres = new Map(artists.map(a => [a.id, a.genres]));
 
   // Enrich tracks
@@ -405,10 +411,8 @@ function applyBonuses(
     }
   }
 
-  // Count artist frequencies in seeds
-  const seedArtists = new Set(
-    world.seedTracks.flatMap(t => t.artists.map(a => a.id))
-  );
+  // Use top artists from world as seed artists
+  const seedArtists = new Set(world.topArtists);
 
   return tracks.map(track => {
     // Novelty: boost if artist is new
@@ -530,8 +534,7 @@ function enforceDiversity(tracks: CandidateTrack[]): CandidateTrack[] {
  * Create Spotify playlists
  */
 async function createSpotifyPlaylists(
-  accessToken: string,
-  userId: string,
+  spotifyId: string,
   world: WorldDefinition,
   playlists: Array<{ name: string; description: string; tracks: CandidateTrack[] }>
 ): Promise<void> {
@@ -539,19 +542,20 @@ async function createSpotifyPlaylists(
   for (const playlist of playlists) {
     try {
       // Create playlist
-      const created = await createPlaylist(accessToken, userId, {
-        name: `${world.name}: ${playlist.name}`,
-        description: playlist.description,
-        public: false
-      });
+      const created = await createPlaylist(
+        spotifyId,
+        `${world.name}: ${playlist.name}`,
+        playlist.description,
+        false
+      );
 
       // Add tracks
       const trackUris = playlist.tracks.map(t => t.uri);
-      await replacePlaylistTracks(accessToken, created.id, trackUris);
+      await replacePlaylistTracks(created.id, trackUris, spotifyId);
 
       // Generate simple cover art (SVG → PNG)
       const coverArt = generateSimpleCoverArt(playlist.name);
-      await uploadPlaylistCover(accessToken, created.id, coverArt);
+      await uploadPlaylistCover(created.id, coverArt, spotifyId);
 
       console.log(`Created playlist: ${created.name} (${playlist.tracks.length} tracks)`);
     } catch (error) {
@@ -591,7 +595,7 @@ function generateSimpleCoverArt(playlistName: string): string {
 /**
  * Compute average features from world centroid
  */
-function computeAverageFeatures(world: WorldDefinition): SpotifyAudioFeatures {
+function computeAverageFeatures(world: WorldDefinition): Partial<SpotifyAudioFeatures> {
   // Use the taste centroid (already computed)
   const centroid = world.tasteCentroid;
   
