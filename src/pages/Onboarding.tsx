@@ -29,7 +29,7 @@ export default function Onboarding() {
   const question = questions[currentQuestion];
 
   const toggleOption = (optionValue: string) => {
-    const key = question.answerKey as keyof OnboardingAnswers;
+    const key = question.id as keyof OnboardingAnswers;
     const current = answers[key] as string[];
     
     if (current.includes(optionValue)) {
@@ -46,7 +46,7 @@ export default function Onboarding() {
   };
 
   const handleCustomChange = (value: string) => {
-    const customKey = `${question.answerKey}_custom` as keyof OnboardingAnswers;
+    const customKey = `${question.id}_custom` as keyof OnboardingAnswers;
     setAnswers({
       ...answers,
       [customKey]: value
@@ -54,8 +54,8 @@ export default function Onboarding() {
   };
 
   const canContinue = () => {
-    const key = question.answerKey as keyof OnboardingAnswers;
-    const customKey = `${question.answerKey}_custom` as keyof OnboardingAnswers;
+    const key = question.id as keyof OnboardingAnswers;
+    const customKey = `${question.id}_custom` as keyof OnboardingAnswers;
     const selected = answers[key] as string[];
     const custom = answers[customKey] as string;
     
