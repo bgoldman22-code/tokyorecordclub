@@ -122,8 +122,8 @@ export default function SeedSelection() {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Choose Your Starting Point</h1>
-            <p className="text-neutral-400">
+            <h1 className="text-4xl font-bold mb-2 text-white">Choose Your Starting Point</h1>
+            <p className="text-neutral-300">
               Select the seeds we'll use to understand your taste
             </p>
           </div>
@@ -156,42 +156,42 @@ export default function SeedSelection() {
           {/* History selection */}
           {seedType === 'history' && (
             <Card className="bg-neutral-900 border-neutral-800 p-6">
-              <h3 className="text-xl font-semibold mb-4">Select Time Range</h3>
+              <h3 className="text-xl font-semibold mb-4 text-white">Select Time Range</h3>
               <div className="grid grid-cols-2 gap-4">
                 <Button
                   variant={historyRange === 'recent' ? 'default' : 'outline'}
                   onClick={() => setHistoryRange('recent')}
-                  className="h-20 flex flex-col items-center justify-center"
+                  className="h-20 flex flex-col items-center justify-center text-white"
                 >
                   <div className="text-2xl mb-1">⏱️</div>
-                  <div>Recent</div>
+                  <div className="font-semibold">Recent</div>
                   <div className="text-xs text-neutral-400">Last 50 tracks</div>
                 </Button>
                 <Button
                   variant={historyRange === '6mo' ? 'default' : 'outline'}
                   onClick={() => setHistoryRange('6mo')}
-                  className="h-20 flex flex-col items-center justify-center"
+                  className="h-20 flex flex-col items-center justify-center text-white"
                 >
                   <div className="text-2xl mb-1">📅</div>
-                  <div>6 Months</div>
+                  <div className="font-semibold">6 Months</div>
                   <div className="text-xs text-neutral-400">Medium term</div>
                 </Button>
                 <Button
                   variant={historyRange === '12mo' ? 'default' : 'outline'}
                   onClick={() => setHistoryRange('12mo')}
-                  className="h-20 flex flex-col items-center justify-center"
+                  className="h-20 flex flex-col items-center justify-center text-white"
                 >
                   <div className="text-2xl mb-1">📆</div>
-                  <div>12 Months</div>
+                  <div className="font-semibold">12 Months</div>
                   <div className="text-xs text-neutral-400">Long term</div>
                 </Button>
                 <Button
                   variant={historyRange === 'alltime' ? 'default' : 'outline'}
                   onClick={() => setHistoryRange('alltime')}
-                  className="h-20 flex flex-col items-center justify-center"
+                  className="h-20 flex flex-col items-center justify-center text-white"
                 >
                   <div className="text-2xl mb-1">🏆</div>
-                  <div>All Time</div>
+                  <div className="font-semibold">All Time</div>
                   <div className="text-xs text-neutral-400">Top tracks</div>
                 </Button>
               </div>
@@ -201,7 +201,7 @@ export default function SeedSelection() {
           {/* Playlist selection */}
           {seedType === 'playlists' && (
             <Card className="bg-neutral-900 border-neutral-800 p-6">
-              <h3 className="text-xl font-semibold mb-4">
+              <h3 className="text-xl font-semibold mb-4 text-white">
                 Select Playlists ({selectedPlaylists.length}/5)
               </h3>
               <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -224,7 +224,7 @@ export default function SeedSelection() {
                         />
                       )}
                       <div>
-                        <div className="font-medium">{playlist.name}</div>
+                        <div className="font-medium text-white">{playlist.name}</div>
                         <div className="text-sm text-neutral-400">
                           {playlist.tracks.total} tracks
                         </div>
@@ -239,7 +239,7 @@ export default function SeedSelection() {
           {/* Track selection */}
           {seedType === 'tracks' && (
             <Card className="bg-neutral-900 border-neutral-800 p-6">
-              <h3 className="text-xl font-semibold mb-4">
+              <h3 className="text-xl font-semibold mb-4 text-white">
                 Search Tracks ({selectedTracks.length}/10)
               </h3>
               
@@ -306,16 +306,16 @@ export default function SeedSelection() {
                       }
                       className="w-full p-3 rounded-lg border bg-neutral-800 border-neutral-700 hover:border-neutral-600 text-left disabled:opacity-50"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {track.album.images?.[0] && (
                           <img
                             src={track.album.images[0].url}
                             alt={track.album.name}
-                            className="w-10 h-10 rounded"
+                            className="w-8 h-8 rounded"
                           />
                         )}
                         <div className="flex-1">
-                          <div className="font-medium">{track.name}</div>
+                          <div className="font-medium text-white">{track.name}</div>
                           <div className="text-sm text-neutral-400">
                             {track.artists.map(a => a.name).join(', ')}
                           </div>
