@@ -11,7 +11,6 @@ import { getTracks, getAudioFeatures, getArtists } from './spotify';
 import { setUserKV, putWorldBlob, cacheTrackData, getCachedTrackData } from './storage';
 import { generateEmbeddings, extractWorldDefinition } from './openai-client';
 import { 
-  pca, 
   computeCentroid, 
   audioFeaturesToVector, 
   computeFeatureRanges, 
@@ -143,14 +142,13 @@ async function buildWorldAsync(
   await updateProgress(jobId, 55, 'Computing taste vector...');
   const featureVectors = audioFeatures.map(f => audioFeaturesToVector(f));
   const tasteCentroid = computeCentroid(featureVectors);
-  const pcaComponents = pca(featureVectors, 8); // Reduce to 8 dimensions
   const featureRanges = computeFeatureRanges(audioFeatures);
 
   // Step 6: Generate text embeddings for semantic understanding
   await updateProgress(jobId, 65, 'Generating semantic embeddings...');
   const descriptions = enrichedTracks.map(track => 
     `${track.artist} - ${track.name}. Album: ${track.album}. ` +
-    `Genres: ${track.genres.join(', ')}. Year: ${track.releaseYear}. ` +
+    `Genres: ${(track.genres || []).join(', ')}. Year: ${track.releaseYear}. ` +
     `Style: ${inferStyle(track.audioFeatures)}`
   );
   
@@ -159,16 +157,24 @@ async function buildWorldAsync(
 
   // Step 7: Extract world definition with GPT-4
   await updateProgress(jobId, 80, 'Extracting world definition...');
-  const conversationTranscript = formatAnswersForGPT(answers);
+  const conversationTranscript = formatAnswersForGPT(answers as unknown as Record<string, string[]>);
   const topGenres = extractTopGenres(enrichedTracks, 10);
+  const topArtists = [...new Set(seedTracks.map(t => t.artistId).filter(Boolean))] as string[];
   const avgFeatures = computeAverageFeatures(audioFeatures);
 
-  const worldDef = await extractWorldDefinition({
+  const worldDef = await extractWorldDefinition(
     conversationTranscript,
-    tasteCentroid: avgFeatures,
-    topGenres,
-    keywords: answers.customKeywords || []
-  });
+    { 
+      topGenres, 
+      topArtists: topArtists.slice(0, 10),
+      audioFeatureSummary: {
+        valence: avgFeatures.valence || 0.5,
+        energy: avgFeatures.energy || 0.5,
+        acousticness: avgFeatures.acousticness || 0.5,
+        tempo: avgFeatures.tempo || 120
+      }
+    }
+  );
 
   // Step 8: Build final world object
   await updateProgress(jobId, 90, 'Finalizing world...');
@@ -176,21 +182,22 @@ async function buildWorldAsync(
     id: `world-${userId}-${Date.now()}`,
     userId,
     name: worldDef.world_name,
+    worldName: worldDef.world_name,
     description: worldDef.description,
     createdAt: Date.now(),
     
-    // Seed tracks
-    seedTracks: enrichedTracks,
+    // Seed tracks (as IDs)
+    seedTracks: seedTrackIds,
     seedTrackIds,
+    topArtists,
+    audioFeatureRanges: featureRanges,
     
     // Feature space
     tasteCentroid,
-    pcaComponents,
     featureRanges,
     
     // Semantic space
     semanticCentroid,
-    trackEmbeddings: embeddings,
     
     // Emotional geometry (from GPT-4)
     emotionalGeometry: worldDef.emotional_geometry,
@@ -199,17 +206,19 @@ async function buildWorldAsync(
     
     // Genre/era constraints
     topGenres,
-    eraDistribution: computeEraDistribution(enrichedTracks),
     
     // Intersection definitions
     intersections: worldDef.intersections.map(intersection => ({
       name: intersection.name,
-      description: intersection.bias,
-      bias: parseIntersectionBias(intersection.bias, avgFeatures)
+      description: intersection.bias_description,
+      bias: parseIntersectionBias(intersection.bias_description, avgFeatures as SpotifyAudioFeatures)
     })),
     
-    // Onboarding context (for future refinement)
-    onboardingAnswers: answers
+    // Playlists (empty initially, generated later)
+    playlists: {},
+    
+    // Conversation context
+    conversationTranscript: { questions: [] }
   };
 
   // Step 9: Save to Blob storage
@@ -338,21 +347,6 @@ function computeAverageFeatures(features: SpotifyAudioFeatures[]): Partial<Spoti
     valence: avg.valence / count,
     tempo: avg.tempo / count
   };
-}
-
-/**
- * Compute era distribution (decades)
- */
-function computeEraDistribution(tracks: EnrichedTrack[]): Record<string, number> {
-  const eraCounts: Record<string, number> = {};
-
-  for (const track of tracks) {
-    const decade = Math.floor(track.releaseYear / 10) * 10;
-    const era = `${decade}s`;
-    eraCounts[era] = (eraCounts[era] || 0) + 1;
-  }
-
-  return eraCounts;
 }
 
 /**
