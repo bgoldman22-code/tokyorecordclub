@@ -65,6 +65,13 @@ export async function requireAuth(event: HandlerEvent) {
 }
 
 /**
+ * Alias for getSession - for backward compatibility
+ */
+export async function getUserFromRequest(event: HandlerEvent) {
+  return getSession(event);
+}
+
+/**
  * Create error response
  */
 export function errorResponse(message: string, statusCode = 500) {

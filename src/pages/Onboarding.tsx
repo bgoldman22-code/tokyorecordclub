@@ -12,16 +12,16 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>({
-    q1_texture: [],
-    q1_custom: '',
-    q2_atmosphere: [],
-    q2_custom: '',
-    q3_tempo: [],
-    q3_custom: '',
-    q4_instrumentation: [],
-    q4_custom: '',
-    q5_avoid: [],
-    q5_custom: ''
+    texture: [],
+    texture_custom: '',
+    atmosphere: [],
+    atmosphere_custom: '',
+    tempo: [],
+    tempo_custom: '',
+    instrumentation: [],
+    instrumentation_custom: '',
+    avoid: [],
+    avoid_custom: ''
   });
   const [isLoading, setIsLoading] = useState(false);
 

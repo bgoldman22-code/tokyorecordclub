@@ -111,6 +111,19 @@ export interface SeedSelection {
   trackIds?: string[];
 }
 
+export interface OnboardingAnswers {
+  texture: string[];
+  texture_custom: string;
+  atmosphere: string[];
+  atmosphere_custom: string;
+  tempo: string[];
+  tempo_custom: string;
+  instrumentation: string[];
+  instrumentation_custom: string;
+  avoid: string[];
+  avoid_custom: string;
+}
+
 export interface EmotionalGeometry {
   darkness_warmth: number; // -1 to 1 (dark to warm)
   intimate_expansive: number; // -1 to 1 (intimate to expansive)

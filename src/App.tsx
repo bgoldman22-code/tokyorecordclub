@@ -1,10 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
-import { Landing } from './pages/Landing';
-import { SeedSelection } from './pages/SeedSelection';
-import { Onboarding } from './pages/Onboarding';
-import { WorldPreview } from './pages/WorldPreview';
-import { Results } from './pages/Results';
-import { Settings } from './pages/Settings';
+import Landing from './pages/Landing.tsx';
+import SeedSelection from './pages/SeedSelection.tsx';
+import Onboarding from './pages/Onboarding.tsx';
+import WorldPreview from './pages/WorldPreview.tsx';
+import Results from './pages/Results.tsx';
+import Settings from './pages/Settings.tsx';
 
 function App() {
   return (

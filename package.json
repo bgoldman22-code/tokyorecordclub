@@ -21,6 +21,7 @@
     "framer-motion": "^10.16.16",
     "jsonwebtoken": "^9.0.2",
     "ml-matrix": "^6.11.0",
+    "openai": "^6.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.21.1",
