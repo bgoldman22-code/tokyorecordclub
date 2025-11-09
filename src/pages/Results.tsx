@@ -27,7 +27,7 @@ export default function Results() {
       });
       
       if (res.ok) {
-        const userData = await res.json();
+        await res.json();
         // Load world from user data
         // For now, mock it
         setWorld({

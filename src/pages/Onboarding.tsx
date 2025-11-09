@@ -144,7 +144,7 @@ export default function Onboarding() {
             {/* Options */}
             <div className="space-y-3 mb-6">
               {question.options.map((option) => {
-                const key = question.answerKey as keyof OnboardingAnswers;
+                const key = question.id as keyof OnboardingAnswers;
                 const selected = (answers[key] as string[]).includes(option.value);
 
                 return (
@@ -190,7 +190,7 @@ export default function Onboarding() {
               </Label>
               <Input
                 id="custom-input"
-                value={answers[`${question.answerKey}_custom` as keyof OnboardingAnswers] as string}
+                value={answers[`${question.id}_custom` as keyof OnboardingAnswers] as string}
                 onChange={(e) => handleCustomChange(e.target.value)}
                 placeholder="Type your own answer..."
                 className="bg-neutral-800 border-neutral-700"
