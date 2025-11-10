@@ -98,7 +98,9 @@ export default function Onboarding() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to start world building');
+        const errorText = await res.text();
+        console.error('Build world failed:', res.status, errorText);
+        throw new Error(`Failed to start world building: ${res.status}`);
       }
 
       const data = await res.json();
