@@ -28,7 +28,7 @@ export default function SeedSelection() {
 
   const fetchPlaylists = async () => {
     try {
-      const res = await fetch('/.netlify/functions/fetch-seeds?type=playlists', {
+      const res = await fetch('/api/playlists', {
         credentials: 'include'
       });
       const data = await res.json();
@@ -42,7 +42,7 @@ export default function SeedSelection() {
     if (!searchQuery.trim()) return;
 
     try {
-      const res = await fetch(`/.netlify/functions/fetch-seeds?type=search&q=${encodeURIComponent(searchQuery)}`, {
+      const res = await fetch(`/api/search-tracks?q=${encodeURIComponent(searchQuery)}`, {
         credentials: 'include'
       });
       const data = await res.json();
@@ -75,19 +75,38 @@ export default function SeedSelection() {
       let seedIds: string[] = [];
 
       if (seedType === 'history') {
+        // Map history range to Spotify API period
+        let period: 'short_term' | 'medium_term' | 'long_term' = 'medium_term';
+        if (historyRange === 'recent') {
+          period = 'short_term';
+        } else if (historyRange === '6mo') {
+          period = 'medium_term';
+        } else if (historyRange === '12mo' || historyRange === 'alltime') {
+          period = 'long_term';
+        }
+
         // Fetch from history
-        const res = await fetch(`/.netlify/functions/fetch-seeds?type=history&range=${historyRange}`, {
-          credentials: 'include'
+        const res = await fetch('/api/fetch-seeds', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            type: 'history',
+            historyPeriod: period
+          })
         });
         const data = await res.json();
         seedIds = data.trackIds;
       } else if (seedType === 'playlists') {
         // Fetch from playlists
-        const res = await fetch('/.netlify/functions/fetch-seeds', {
+        const res = await fetch('/api/fetch-seeds', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'playlists', playlistIds: selectedPlaylists })
+          body: JSON.stringify({ 
+            type: 'playlists', 
+            playlistIds: selectedPlaylists 
+          })
         });
         const data = await res.json();
         seedIds = data.trackIds;

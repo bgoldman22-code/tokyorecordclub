@@ -73,7 +73,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
         spotifyId: spotifyUser.id,
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30, // 30 days
       },
-      process.env.SESSION_SECRET!
+      process.env.JWT_SECRET || process.env.SESSION_SECRET! // Support both for backward compat
     );
 
     // Set secure HTTP-only cookie

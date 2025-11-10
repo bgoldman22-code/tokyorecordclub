@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { ONBOARDING_QUESTIONS } from '../../functions/onboarding-questions';
+import { ONBOARDING_QUESTIONS } from '../lib/onboarding-questions';
 import type { OnboardingAnswers } from '../types';
 
 export default function Onboarding() {

@@ -28,9 +28,15 @@
   path = "/.netlify/functions/schedule-weekly"
   schedule = "0 15 * * 1"
 
+# Map /api/* to Netlify functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
 # SPA fallback - exclude function paths
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {path = ["!/.netlify/*"]}  # Don't redirect Netlify functions
+  conditions = {path = ["!/.netlify/*", "!/api/*"]}  # Don't redirect Netlify functions

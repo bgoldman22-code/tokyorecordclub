@@ -35,7 +35,7 @@ export async function getSession(
     // Verify JWT
     const decoded = jwt.verify(
       sessionToken,
-      process.env.SESSION_SECRET!
+      process.env.JWT_SECRET || process.env.SESSION_SECRET! // Support both for backward compat
     ) as SessionPayload;
 
     console.log('JWT verified for user:', decoded.spotifyId);
